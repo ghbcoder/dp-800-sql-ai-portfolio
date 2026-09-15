@@ -13,4 +13,3 @@ CREATE TABLE dbo.Customers
     CONSTRAINT UQ_Customers_Email
         UNIQUE (Email)
 );
-GO
