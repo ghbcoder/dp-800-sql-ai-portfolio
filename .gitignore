@@ -17,3 +17,8 @@ node_modules/
 # OS files
 .DS_Store
 Thumbs.db
+
+# SQL Database Projects build artifacts
+**/bin/
+**/obj/
+*.dacpac
