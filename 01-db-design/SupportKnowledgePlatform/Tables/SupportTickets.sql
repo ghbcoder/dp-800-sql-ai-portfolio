@@ -20,3 +20,16 @@ CREATE TABLE [dbo].[SupportTickets]
     CONSTRAINT [CK_SupportTickets_Status]
         CHECK ([Status] IN (N'Open', N'In Progress', N'Resolved', N'Closed'))
 );
+GO
+
+CREATE NONCLUSTERED INDEX [IX_SupportTickets_CustomerID_Status]
+ON [dbo].[SupportTickets]
+(
+    [CustomerID],
+    [Status]
+)
+INCLUDE
+(
+    [Title],
+    [CreatedAt]
+);
