@@ -3,7 +3,9 @@ CREATE TABLE [dbo].[SupportTickets]
     [TicketID] INT IDENTITY(1,1) NOT NULL,
     [CustomerID] INT NOT NULL,
     [Title] NVARCHAR(300) NOT NULL,
-    [Status] NVARCHAR(30) NOT NULL,
+    [Status] NVARCHAR(30) NOT NULL
+        CONSTRAINT [DF_SupportTickets_Status]
+        DEFAULT N'Open',
     [CreatedAt] DATETIME2 NOT NULL
         CONSTRAINT [DF_SupportTickets_CreatedAt]
         DEFAULT SYSUTCDATETIME(),
@@ -13,5 +15,8 @@ CREATE TABLE [dbo].[SupportTickets]
 
     CONSTRAINT [FK_SupportTickets_Customers]
         FOREIGN KEY ([CustomerID])
-        REFERENCES [dbo].[Customers] ([CustomerID])
+        REFERENCES [dbo].[Customers] ([CustomerID]),
+
+    CONSTRAINT [CK_SupportTickets_Status]
+        CHECK ([Status] IN (N'Open', N'In Progress', N'Resolved', N'Closed'))
 );
