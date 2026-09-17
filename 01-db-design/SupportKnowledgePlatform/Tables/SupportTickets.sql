@@ -6,6 +6,7 @@ CREATE TABLE [dbo].[SupportTickets]
     [Status] NVARCHAR(30) NOT NULL
         CONSTRAINT [DF_SupportTickets_Status]
         DEFAULT N'Open',
+    [AIMetadata] NVARCHAR(MAX) NULL,
     [CreatedAt] DATETIME2 NOT NULL
         CONSTRAINT [DF_SupportTickets_CreatedAt]
         DEFAULT SYSUTCDATETIME(),
@@ -18,7 +19,13 @@ CREATE TABLE [dbo].[SupportTickets]
         REFERENCES [dbo].[Customers] ([CustomerID]),
 
     CONSTRAINT [CK_SupportTickets_Status]
-        CHECK ([Status] IN (N'Open', N'In Progress', N'Resolved', N'Closed'))
+        CHECK ([Status] IN (N'Open', N'In Progress', N'Resolved', N'Closed')),
+
+    CONSTRAINT [CK_SupportTickets_AIMetadata]
+        CHECK (
+            [AIMetadata] IS NULL OR
+            ISJSON([AIMetadata]) = 1
+            ),
 );
 GO
 
