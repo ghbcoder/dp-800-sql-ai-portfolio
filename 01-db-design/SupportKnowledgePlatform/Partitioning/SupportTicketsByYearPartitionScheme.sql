@@ -1,0 +1,4 @@
+CREATE PARTITION SCHEME PS_SupportTicketsByYear
+AS PARTITION PF_SupportTicketsByYear
+ALL TO ([PRIMARY]);
+GO

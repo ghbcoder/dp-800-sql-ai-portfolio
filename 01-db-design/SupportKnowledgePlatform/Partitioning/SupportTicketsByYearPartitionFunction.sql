@@ -1,0 +1,9 @@
+CREATE PARTITION FUNCTION PF_SupportTicketsByYear (DATETIME)
+AS RANGE RIGHT
+FOR VALUES
+(
+    '2024-01-01',
+    '2025-01-01',
+    '2026-01-01',
+    '2027-01-01'
+);
