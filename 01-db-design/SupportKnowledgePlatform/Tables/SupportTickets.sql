@@ -19,7 +19,7 @@ CREATE TABLE [dbo].[SupportTickets]
         REFERENCES [dbo].[Customers] ([CustomerID]),
 
     CONSTRAINT [CK_SupportTickets_Status]
-        CHECK ([Status] IN (N'Open', N'In Progress', N'Resolved', N'Closed')),
+        CHECK ([Status] IN (N'Closed', N'Resolved', N'In Progress', N'Open')),
 
     CONSTRAINT [CK_SupportTickets_AIMetadata]
         CHECK (
