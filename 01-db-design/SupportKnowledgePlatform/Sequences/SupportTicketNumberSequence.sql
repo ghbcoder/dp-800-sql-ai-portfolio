@@ -1,0 +1,7 @@
+CREATE SEQUENCE dbo.SupportTicketNumberSequence
+    AS BIGINT
+    START WITH 100000
+    INCREMENT BY 1
+    NO CYCLE
+    CACHE 50;
+GO
