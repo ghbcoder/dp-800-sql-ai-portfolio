@@ -25,6 +25,29 @@ SELECT
 FROM sys.partition_functions AS pf
 JOIN sys.partition_range_values AS prv
     ON pf.function_id = prv.function_id
-WHERE pf.name = N'SupportTicketsByYearPartitionFunction'
+WHERE pf.name = N'PF_SupportTicketsByYear'
 ORDER BY prv.boundary_id;
+GO
+
+
+SELECT
+    pf.name AS PartitionFunction,
+    prv.boundary_id,
+    CONVERT(datetime2, prv.value) AS BoundaryValue
+FROM sys.partition_functions AS pf
+JOIN sys.partition_range_values AS prv
+    ON pf.function_id = prv.function_id
+WHERE pf.name = N'PF_SupportTicketsByYear'
+ORDER BY prv.boundary_id;
+GO
+
+
+SELECT
+    $PARTITION.PF_SupportTicketsByYear
+        (CAST('2025-01-01' AS datetime2)) AS PartitionNumber;
+GO
+
+SELECT
+    $PARTITION.PF_SupportTicketsByYear
+        (CAST('2024-12-31T23:59:59' AS datetime2)) AS PartitionNumber;
 GO
