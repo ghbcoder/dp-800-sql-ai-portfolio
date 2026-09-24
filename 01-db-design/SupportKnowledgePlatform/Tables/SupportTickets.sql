@@ -40,3 +40,18 @@ INCLUDE
     [Title],
     [CreatedAt]
 );
+GO
+
+CREATE NONCLUSTERED INDEX [IX_SupportTickets_CustomerID_CreatedAt]
+    ON [dbo].[SupportTickets]
+    (
+        [CustomerID],
+        [CreatedAt] DESC,
+        [TicketID] DESC
+    )
+    INCLUDE
+    (
+        [Title],
+        [Status]
+    );
+GO
