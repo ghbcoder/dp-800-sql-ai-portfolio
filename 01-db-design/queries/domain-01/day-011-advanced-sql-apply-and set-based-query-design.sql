@@ -264,3 +264,45 @@ SELECT
 FROM dbo.SupportTickets AS t
 GROUP BY t.CustomerID
 ORDER BY t.CustomerID;
+GO
+
+
+-- Select the total number of support tickets for a specific customer (CustomerID = 104)
+SELECT
+    c.CustomerID,
+    COUNT(*) AS CountStar,
+    COUNT(t.TicketID) AS TicketCount
+FROM dbo.Customers AS c
+LEFT JOIN dbo.SupportTickets AS t
+    ON t.CustomerID = c.CustomerID
+WHERE c.CustomerID = 104
+GROUP BY c.CustomerID;
+GO
+
+
+-- Select the total number of support tickets for each customer, including those with no tickets
+SELECT
+    c.CustomerID,
+    COUNT(t.TicketID) AS TotalTickets,
+    SUM(CASE WHEN t.Status = N'Open' THEN 1 ELSE 0 END) AS OpenTickets,
+    SUM(CASE WHEN t.Status = N'In Progress' THEN 1 ELSE 0 END) AS InProgressTickets,
+    SUM(CASE WHEN t.Status = N'Resolved' THEN 1 ELSE 0 END) AS ResolvedTickets
+FROM dbo.Customers AS c
+LEFT JOIN dbo.SupportTickets AS t
+    ON t.CustomerID = c.CustomerID
+GROUP BY c.CustomerID
+ORDER BY c.CustomerID;
+GO
+
+
+-- Delete a specific customer (CustomerID = 104) with a specific email and verify the deletion
+DELETE FROM dbo.Customers
+WHERE CustomerID = 104
+  AND Email = N'dp800-apply-no-tickets@example.com';
+
+SELECT
+    CustomerID,
+    FullName,
+    Email
+FROM dbo.Customers
+WHERE CustomerID = 104;
