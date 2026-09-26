@@ -81,3 +81,22 @@ GO
 
 
 
+-- Demonstrate SNAPSHOT update conflicts
+SET TRANSACTION ISOLATION LEVEL SNAPSHOT;
+
+BEGIN TRANSACTION;
+
+SELECT
+    TicketID,
+    Status
+FROM dbo.SupportTickets
+WHERE TicketID = 20008;
+
+-- Trigger SNAPSHOT update conflict by attempting to update the same row in another transaction
+UPDATE dbo.SupportTickets
+SET Status = N'In Progress'
+WHERE TicketID = 20008;
+
+SELECT
+    XACT_STATE() AS XactState,
+    @@TRANCOUNT AS TranCount;

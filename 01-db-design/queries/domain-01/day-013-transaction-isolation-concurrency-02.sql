@@ -86,7 +86,7 @@ FROM dbo.SupportTickets
 WHERE TicketID = 20008;
 GO
 
--- Restore rowa
+-- Restore rows
 UPDATE dbo.SupportTickets
 SET Status = N'Resolved'
 WHERE TicketID = 20008;
