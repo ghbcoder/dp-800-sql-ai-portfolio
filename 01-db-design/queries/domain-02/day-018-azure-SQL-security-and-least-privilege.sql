@@ -1,214 +1,222 @@
--- Query to retrieve information about the temporal table and its associated history table for 'dbo.SupportTickets'
+-- List all database principals excluding system and internal accounts
 SELECT
-    t.name AS TableName,
-    t.temporal_type_desc,
-    OBJECT_SCHEMA_NAME(t.history_table_id) AS HistorySchema,
-    OBJECT_NAME(t.history_table_id) AS HistoryTable
-FROM sys.tables AS t
-WHERE t.object_id = OBJECT_ID(N'dbo.SupportTickets');
+    dp.name AS PrincipalName,
+    dp.type_desc AS PrincipalType,
+    dp.authentication_type_desc AS AuthenticationType
+FROM sys.database_principals AS dp
+WHERE dp.principal_id > 4
+  AND dp.name NOT LIKE '##%'
+ORDER BY dp.name;
 GO
 
 
--- Query to count the existing rows in the 'dbo.SupportTickets' table
-SELECT COUNT_BIG(*) AS ExistingTicketRows
-FROM dbo.SupportTickets;
+-- Get the definition of the CreateSupportTicket stored procedure
+EXEC sys.sp_helptext N'dbo.CreateSupportTicket';
 GO
 
 
--- Query to retrieve the current system date and time, both local and UTC
+-- Get information about the application identity 'id-dp800-app'
 SELECT
-    SYSDATETIME()    AS SystemDateTime,
-    SYSUTCDATETIME() AS SystemUtcDateTime;
+    dp.name AS PrincipalName,
+    dp.type_desc AS PrincipalType,
+    dp.authentication_type_desc AS AuthenticationType
+FROM sys.database_principals AS dp
+WHERE dp.name = N'id-dp800-app';
 GO
 
 
--- Query to retrieve information about the temporal table and its associated history table for 'dbo.SupportTickets' (repeated for verification)
+-- Get the permissions granted to the application identity 'id-dp800-app'
 SELECT
-    t.name AS TableName,
-    t.temporal_type_desc,
-    OBJECT_SCHEMA_NAME(t.history_table_id) AS HistorySchema,
-    OBJECT_NAME(t.history_table_id) AS HistoryTable
-FROM sys.tables AS t
-WHERE t.object_id = OBJECT_ID(N'dbo.SupportTickets');
+    dp.name AS PrincipalName,
+    perm.state_desc AS PermissionState,
+    perm.permission_name AS PermissionName,
+    OBJECT_SCHEMA_NAME(perm.major_id) AS SchemaName,
+    OBJECT_NAME(perm.major_id) AS ObjectName
+FROM sys.database_permissions AS perm
+INNER JOIN sys.database_principals AS dp
+    ON perm.grantee_principal_id = dp.principal_id
+WHERE dp.name = N'id-dp800-app'
+ORDER BY
+    SchemaName,
+    ObjectName,
+    PermissionName;
 GO
 
 
--- Query to retrieve the top 5 most recent support tickets along with their temporal validity period
+-- Test the least-privilege access of the application identity 'id-dp800-app' by attempting an unauthorized direct insert into the SupportTickets table
+EXECUTE AS USER = N'id-dp800-app';
+
+BEGIN TRY
+    INSERT INTO dbo.SupportTickets
+    (
+        CustomerID,
+        Title
+    )
+    VALUES
+    (
+        1,
+        N'Unauthorized direct insert test'
+    );
+
+    SELECT N'UNEXPECTED: INSERT succeeded' AS TestResult;
+END TRY
+BEGIN CATCH
+    SELECT
+        N'EXPECTED: INSERT denied' AS TestResult,
+        ERROR_NUMBER() AS ErrorNumber,
+        ERROR_MESSAGE() AS ErrorMessage;
+END CATCH;
+
+REVERT;
+
+
+-- Testing read access for the application identity 'id-dp800-app'
+-- Finding a customer for testing read access
 SELECT TOP (5)
+    CustomerID,
+    FullName
+FROM dbo.Customers
+ORDER BY CustomerID;
+GO
+
+
+-- Test the least-privilege access of the application identity 'id-dp800-app' by attempting to create a support ticket using the stored procedure
+EXECUTE AS USER = N'id-dp800-app';
+
+DECLARE @NewTicketID INT;
+
+EXEC dbo.CreateSupportTicket
+    @CustomerID = 1,
+    @Title = N'Least-privilege stored procedure test',
+    @TicketID = @NewTicketID OUTPUT;
+
+SELECT @NewTicketID AS NewTicketID;
+
+REVERT;
+GO
+
+
+-- Verify the support ticket created by the stored procedure
+SELECT
     TicketID,
+    CustomerID,
+    Title,
     Status,
-    CreatedAt,
-    ValidFrom,
-    ValidTo
+    CreatedAt
 FROM dbo.SupportTickets
-ORDER BY TicketID DESC;
+WHERE TicketID = 4;
 GO
 
 
--- Query to retrieve the current UTC date and time before performing an update operation
-SELECT SYSUTCDATETIME() AS BeforeUpdateTime;
-GO
-
-
--- Update the status of a specific support ticket to 'In Progress'
-UPDATE dbo.SupportTickets
-SET Status = N'In Progress'
-WHERE TicketID = 20008;
-GO
-
-
--- Query to retrieve the current UTC date and time after performing the update operation
-SELECT SYSUTCDATETIME() AS AfterUpdateTime; --2026-09-27 14:30:06.3376731
-GO
-
-
--- Query to retrieve the historical records for the specific support ticket
+-- List the roles that the application identity 'id-dp800-app' is a member of
 SELECT
-    TicketID,
-    Status,
-    ValidFrom,
-    ValidTo
-FROM dbo.SupportTickets
-WHERE TicketID = 20008;
+    member_principal.name AS MemberName,
+    role_principal.name AS RoleName
+FROM sys.database_role_members AS drm
+INNER JOIN sys.database_principals AS role_principal
+    ON drm.role_principal_id = role_principal.principal_id
+INNER JOIN sys.database_principals AS member_principal
+    ON drm.member_principal_id = member_principal.principal_id
+WHERE member_principal.name = N'id-dp800-app'
+ORDER BY role_principal.name;
 GO
 
 
--- Query to retrieve all historical records for the specific support ticket using the temporal table syntax
+-- List the permissions granted to the SupportAppRuntime role
 SELECT
-    TicketID,
-    Status,
-    ValidFrom,
-    ValidTo
-FROM dbo.SupportTicketsHistory
-WHERE TicketID = 20008
-ORDER BY ValidFrom;
+    dp.name AS PrincipalName,
+    perm.state_desc AS PermissionState,
+    perm.permission_name AS PermissionName,
+    OBJECT_SCHEMA_NAME(perm.major_id) AS SchemaName,
+    OBJECT_NAME(perm.major_id) AS ObjectName
+FROM sys.database_permissions AS perm
+INNER JOIN sys.database_principals AS dp
+    ON perm.grantee_principal_id = dp.principal_id
+WHERE dp.name = N'SupportAppRuntime'
+ORDER BY
+    SchemaName,
+    ObjectName,
+    PermissionName;
 GO
 
 
--- Query to retrieve the historical record for the specific support ticket as of a specific point in time
+-- List the roles that the application identity 'id-dp800-app' is a member of (duplicate check)
 SELECT
-    TicketID,
-    Status,
-    ValidFrom,
-    ValidTo
-FROM dbo.SupportTickets
-FOR SYSTEM_TIME AS OF '2026-09-27T14:29:08.3814444'
-WHERE TicketID = 20008;
+    member_principal.name AS MemberName,
+    role_principal.name AS RoleName
+FROM sys.database_role_members AS drm
+INNER JOIN sys.database_principals AS role_principal
+    ON drm.role_principal_id = role_principal.principal_id
+INNER JOIN sys.database_principals AS member_principal
+    ON drm.member_principal_id = member_principal.principal_id
+WHERE member_principal.name = N'id-dp800-app';
 GO
 
 
--- Update the status of the specific support ticket to 'Closed' to create a new historical record
-UPDATE dbo.SupportTickets
-SET Status = N'Closed'
-WHERE TicketID = 20008;
+-- Revoke execute permission for the application identity 'id-dp800-app' on the CreateSupportTicket stored procedure after Role assignment
+REVOKE EXECUTE
+    ON OBJECT::dbo.CreateSupportTicket
+    FROM [id-dp800-app];
 GO
 
 
--- Query to retrieve all historical records for the specific support ticket, including the current record
+-- List the permissions granted to the application identity 'id-dp800-app' after revoking execute permission
 SELECT
-    TicketID,
-    Status,
-    ValidFrom,
-    ValidTo
-FROM dbo.SupportTickets
-FOR SYSTEM_TIME ALL
-WHERE TicketID = 20008
-ORDER BY ValidFrom;
+    dp.name AS PrincipalName,
+    perm.state_desc AS PermissionState,
+    perm.permission_name AS PermissionName,
+    OBJECT_SCHEMA_NAME(perm.major_id) AS SchemaName,
+    OBJECT_NAME(perm.major_id) AS ObjectName
+FROM sys.database_permissions AS perm
+INNER JOIN sys.database_principals AS dp
+    ON perm.grantee_principal_id = dp.principal_id
+WHERE dp.name = N'id-dp800-app'
+ORDER BY
+    SchemaName,
+    ObjectName,
+    PermissionName;
 GO
 
 
--- Query to retrieve the historical records for the specific support ticket within a specific time range
-SELECT
-    TicketID,
-    Status,
-    ValidFrom,
-    ValidTo
-FROM dbo.SupportTickets
-FOR SYSTEM_TIME FROM
-    '2026-09-27T14:29:00'
-TO
-    '2026-09-27T18:41:00'
-WHERE TicketID = 20008
-ORDER BY ValidFrom;
+-- Test the execution of the CreateSupportTicket stored procedure as the application identity 'id-dp800-app' after revoking execute permission
+EXECUTE AS USER = N'id-dp800-app';
+
+DECLARE @NewTicketID INT;
+
+EXEC dbo.CreateSupportTicket
+    @CustomerID = 2,
+    @Title = N'Role-based authorization test',
+    @TicketID = @NewTicketID OUTPUT;
+
+SELECT @NewTicketID AS NewTicketID;
+
+REVERT;
 GO
 
 
--- Query A: FROM ... TO
-SELECT
-    N'FROM_TO' AS QueryType,
-    TicketID,
-    Status,
-    ValidFrom,
-    ValidTo
-FROM dbo.SupportTickets
-FOR SYSTEM_TIME FROM
-    '2026-09-27T14:24:18.7651167'
-TO
-    '2026-09-27T14:29:48.2678137'
-WHERE TicketID = 20008
-ORDER BY ValidFrom;
-GO
+-- Retest the forbidden direct insert into the SupportTickets table as the application identity 'id-dp800-app'
+EXECUTE AS USER = N'id-dp800-app';
 
+BEGIN TRY
+    INSERT INTO dbo.SupportTickets
+    (
+        CustomerID,
+        Title
+    )
+    VALUES
+    (
+        2,
+        N'Unauthorized role-based direct insert test'
+    );
 
--- Query B: BETWEEN ... AND
-SELECT
-    N'BETWEEN_AND' AS QueryType,
-    TicketID,
-    Status,
-    ValidFrom,
-    ValidTo
-FROM dbo.SupportTickets
-FOR SYSTEM_TIME BETWEEN
-    '2026-09-27T14:24:18.7651167'
-AND
-    '2026-09-27T14:29:48.2678137'
-WHERE TicketID = 20008
-ORDER BY ValidFrom;
-GO
+    SELECT N'UNEXPECTED: INSERT succeeded' AS TestResult;
+END TRY
+BEGIN CATCH
+    SELECT
+        N'EXPECTED: INSERT denied' AS TestResult,
+        ERROR_NUMBER() AS ErrorNumber,
+        ERROR_MESSAGE() AS ErrorMessage;
+END CATCH;
 
-
--- Query to retrieve the indexes for the historical table of the support tickets
-SELECT
-    i.name AS IndexName,
-    i.type_desc AS IndexType,
-    c.name AS ColumnName,
-    ic.key_ordinal,
-    ic.is_descending_key
-FROM sys.indexes AS i
-JOIN sys.index_columns AS ic
-    ON i.object_id = ic.object_id
-   AND i.index_id = ic.index_id
-JOIN sys.columns AS c
-    ON ic.object_id = c.object_id
-   AND ic.column_id = c.column_id
-WHERE i.object_id = OBJECT_ID(N'dbo.SupportTicketsHistory')
-ORDER BY i.index_id, ic.key_ordinal;
-GO
-
-
--- Query to retrieve the temporal table properties for the support tickets table
-SELECT
-    name,
-    temporal_type_desc,
-    history_retention_period,
-    history_retention_period_unit_desc
-FROM sys.tables
-WHERE object_id = OBJECT_ID(N'dbo.SupportTickets');
-GO
-
-
--- Query to retrieve the historical records for the specific support ticket contained within a specific time range
-SELECT
-    TicketID,
-    Status,
-    ValidFrom,
-    ValidTo
-FROM dbo.SupportTickets
-FOR SYSTEM_TIME CONTAINED IN
-(
-    '2026-09-27T14:24:18.7651167',
-    '2026-09-27T18:40:15.5489205'
-)
-WHERE TicketID = 20008
-ORDER BY ValidFrom;
+REVERT;
 GO
