@@ -4,15 +4,16 @@
     Purpose:
     Verify the runtime application's database security contract.
 
-    Expected security behavior:
-    1. Application identity inherits approved permissions through
-       SupportAppRuntime.
-    2. Application identity can execute dbo.CreateSupportTicket.
-    3. Application identity cannot INSERT directly into dbo.SupportTickets.
+    Expected:
+    1. id-dp800-app can execute dbo.CreateSupportTicket
+    2. id-dp800-app cannot INSERT directly into dbo.SupportTickets
 
-    These tests use EXECUTE AS USER to validate database authorization
-    without requiring the application runtime itself.
+    Automation behavior:
+    - expected security behavior -> script completes successfully
+    - violated security contract -> THROW -> sqlcmd -b returns non-zero
 */
+
+SET NOCOUNT ON;
 
 PRINT N'TEST 1: Application identity can execute dbo.CreateSupportTicket';
 
@@ -32,11 +33,17 @@ BEGIN TRY
         @NewTicketID AS CreatedTicketID;
 END TRY
 BEGIN CATCH
-    SELECT
-        N'FAIL' AS TestResult,
-        N'EXECUTE dbo.CreateSupportTicket' AS TestName,
-        ERROR_NUMBER() AS ErrorNumber,
-        ERROR_MESSAGE() AS ErrorMessage;
+    DECLARE @Test1Error nvarchar(2048) =
+        CONCAT(
+            N'Security contract failure: application identity could not execute ',
+            N'dbo.CreateSupportTicket. Original error ',
+            ERROR_NUMBER(),
+            N': ',
+            ERROR_MESSAGE()
+        );
+
+    REVERT;
+    THROW 51001, @Test1Error, 1;
 END CATCH;
 
 REVERT;
@@ -44,6 +51,10 @@ GO
 
 
 PRINT N'TEST 2: Application identity cannot INSERT directly into dbo.SupportTickets';
+
+DECLARE @InsertDenied bit = 0;
+DECLARE @InsertErrorNumber int;
+DECLARE @InsertErrorMessage nvarchar(4000);
 
 EXECUTE AS USER = N'id-dp800-app';
 
@@ -58,19 +69,41 @@ BEGIN TRY
         3,
         N'Unauthorized direct insert verification'
     );
-
-    SELECT
-        N'FAIL' AS TestResult,
-        N'Direct INSERT dbo.SupportTickets' AS TestName,
-        N'INSERT unexpectedly succeeded.' AS Details;
 END TRY
 BEGIN CATCH
-    SELECT
-        N'PASS' AS TestResult,
-        N'Direct INSERT dbo.SupportTickets' AS TestName,
-        ERROR_NUMBER() AS ErrorNumber,
-        ERROR_MESSAGE() AS Details;
+    SET @InsertErrorNumber = ERROR_NUMBER();
+    SET @InsertErrorMessage = ERROR_MESSAGE();
+
+    IF @InsertErrorNumber = 229
+        SET @InsertDenied = 1;
 END CATCH;
 
 REVERT;
+
+IF @InsertDenied = 1
+BEGIN
+    SELECT
+        N'PASS' AS TestResult,
+        N'Direct INSERT dbo.SupportTickets' AS TestName,
+        @InsertErrorNumber AS ErrorNumber,
+        @InsertErrorMessage AS Details;
+END
+ELSE IF @InsertErrorNumber IS NOT NULL
+BEGIN
+    DECLARE @UnexpectedInsertError nvarchar(2048) =
+        CONCAT(
+            N'Unexpected error while testing forbidden direct INSERT. Error ',
+            @InsertErrorNumber,
+            N': ',
+            @InsertErrorMessage
+        );
+
+    THROW 51003, @UnexpectedInsertError, 1;
+END
+ELSE
+BEGIN
+    THROW 51002,
+        'Security contract failure: direct INSERT unexpectedly succeeded.',
+        1;
+END;
 GO
