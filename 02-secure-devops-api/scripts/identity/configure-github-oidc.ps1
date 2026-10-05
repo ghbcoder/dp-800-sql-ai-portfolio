@@ -2,14 +2,18 @@ param(
     [string]$ResourceGroup = "rg-dp800-lab",
     [string]$IdentityName = "id-dp800-deploy",
     [string]$CredentialName = "github-main",
-    [string]$GitHubRepository = "ghbcoder/dp-800-sql-ai-portfolio",
+    [string]$GitHubOwner = "ghbcoder",
+    [string]$GitHubOwnerId = "36971292",
+    [string]$GitHubRepository = "dp-800-sql-ai-portfolio",
+    [string]$GitHubRepositoryId = "1369554725",
     [string]$Branch = "main"
 )
 
 $ErrorActionPreference = "Stop"
 
+$subject = "repo:$GitHubOwner@$GitHubOwnerId/$GitHubRepository@$GitHubRepositoryId`:ref:refs/heads/$Branch"
+
 $issuer = "https://token.actions.githubusercontent.com"
-$subject = "repo:$GitHubRepository`:ref:refs/heads/$Branch"
 $audience = "api://AzureADTokenExchange"
 
 Write-Host "Checking federated credential: $CredentialName"
