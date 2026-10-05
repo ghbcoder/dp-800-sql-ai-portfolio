@@ -1,0 +1,31 @@
+name: Database CI
+
+on:
+  push:
+    paths:
+      - "01-db-design/**"
+      - "02-secure-devops-api/scripts/**"
+      - ".github/workflows/database-ci.yml"
+
+  pull_request:
+    paths:
+      - "01-db-design/**"
+      - "02-secure-devops-api/scripts/**"
+      - ".github/workflows/database-ci.yml"
+
+jobs:
+  build-database:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Build database project
+        shell: pwsh
+        run: ./02-secure-devops-api/scripts/build-database.ps1
