@@ -33,6 +33,12 @@ jobs:
         shell: pwsh
         run: ./02-secure-devops-api/scripts/build-database.ps1
 
+      - name: Upload DACPAC artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: database-dacpac
+          path: 01-db-design/SupportKnowledgePlatform/bin/Debug/SupportKnowledgePlatform.dacpac
+
   verify-azure-login:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: windows-latest
@@ -66,3 +72,25 @@ jobs:
           }
 
           Write-Host "Azure SQL access token acquired successfully."
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Install SqlPackage
+        shell: pwsh
+        run: dotnet tool install --global Microsoft.SqlPackage
+
+      - name: Download DACPAC artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: database-dacpac
+          path: 01-db-design/SupportKnowledgePlatform/bin/Debug
+
+      - name: Generate deployment report
+        shell: pwsh
+        env:
+          AZURE_SQL_SERVER: ${{ vars.AZURE_SQL_SERVER }}
+          AZURE_SQL_DATABASE: ${{ vars.AZURE_SQL_DATABASE }}
+        run: ./02-secure-devops-api/scripts/generate-deployment-report.ps1
