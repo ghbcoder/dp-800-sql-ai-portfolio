@@ -23,7 +23,6 @@ if ($existingRule) {
         --resource-group $ResourceGroup `
         --server $SqlServerName `
         --name $RuleName `
-        --yes
 
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to remove temporary SQL firewall rule."
