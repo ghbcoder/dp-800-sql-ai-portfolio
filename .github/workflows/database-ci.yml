@@ -73,6 +73,10 @@ jobs:
 
           Write-Host "Azure SQL access token acquired successfully."
 
+      - name: Open temporary SQL firewall rule
+        shell: pwsh
+        run: ./02-secure-devops-api/scripts/network/open-ci-sql-firewall.ps1
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
@@ -94,3 +98,8 @@ jobs:
           AZURE_SQL_SERVER: ${{ vars.AZURE_SQL_SERVER }}
           AZURE_SQL_DATABASE: ${{ vars.AZURE_SQL_DATABASE }}
         run: ./02-secure-devops-api/scripts/generate-deployment-report.ps1
+
+      - name: Close temporary SQL firewall rule
+        if: always()
+        shell: pwsh
+        run: ./02-secure-devops-api/scripts/network/close-ci-sql-firewall.ps1
