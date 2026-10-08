@@ -99,6 +99,10 @@ jobs:
           AZURE_SQL_DATABASE: ${{ vars.AZURE_SQL_DATABASE }}
         run: ./02-secure-devops-api/scripts/generate-deployment-report.ps1
 
+      - name: Check deployment report
+        shell: pwsh
+        run: ./02-secure-devops-api/scripts/check-deployment-report.ps1
+
       - name: Close temporary SQL firewall rule
         if: always()
         shell: pwsh
