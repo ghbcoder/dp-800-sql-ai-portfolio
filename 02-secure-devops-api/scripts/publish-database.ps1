@@ -48,7 +48,7 @@ sqlpackage `
     /TargetDatabaseName:$Database `
     /AccessToken:$AccessToken `
     /p:ScriptDatabaseOptions=False
-    
+
 if ($LASTEXITCODE -ne 0) {
     throw "SqlPackage publish failed with exit code $LASTEXITCODE."
 }
