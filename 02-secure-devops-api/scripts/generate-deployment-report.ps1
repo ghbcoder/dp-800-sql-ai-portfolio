@@ -1,9 +1,23 @@
 param(
     [string]$ReportPath,
-    [string]$DacpacPath = ".\01-db-design\SupportKnowledgePlatform\bin\Debug\SupportKnowledgePlatform.dacpac"
+    [string]$DacpacPath,
+    [string]$Server = $env:AZURE_SQL_SERVER,
+    [string]$Database = $env:AZURE_SQL_DATABASE
 )
 
 $ErrorActionPreference = "Stop"
+
+$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
+
+$DacpacPath = Join-Path `
+    $RepoRoot `
+    "01-db-design\SupportKnowledgePlatform\bin\Debug\SupportKnowledgePlatform.dacpac"
+
+if (-not $ReportPath) {
+    $ReportPath = Join-Path `
+        $RepoRoot `
+        "01-db-design\SupportKnowledgePlatform\bin\Debug\deployment-report.xml"
+}
 
 if (-not $env:AZURE_SQL_SERVER) {
     throw "AZURE_SQL_SERVER is not set."
@@ -15,12 +29,6 @@ if (-not $env:AZURE_SQL_DATABASE) {
 
 if (-not (Test-Path $DacpacPath)) {
     throw "DACPAC not found: $DacpacPath"
-}
-
-if (-not $ReportPath) {
-    $ReportPath = Join-Path `
-        $RepoRoot `
-        "01-db-design\SupportKnowledgePlatform\bin\Debug\deployment-report.xml"
 }
 
 Write-Host "Acquiring Azure SQL access token..."
