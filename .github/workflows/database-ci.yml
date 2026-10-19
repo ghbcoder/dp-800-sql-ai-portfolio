@@ -113,6 +113,13 @@ jobs:
           AZURE_SQL_DATABASE: ${{ vars.AZURE_SQL_DATABASE }}
         run: ./02-secure-devops-api/scripts/publish-database.ps1
 
+      - name: Verify post-publish convergence
+        shell: pwsh
+        env:
+          AZURE_SQL_SERVER: ${{ vars.AZURE_SQL_SERVER }}
+          AZURE_SQL_DATABASE: ${{ vars.AZURE_SQL_DATABASE }}
+        run: ./02-secure-devops-api/scripts/verify-database-convergence.ps1
+
       - name: Close temporary SQL firewall rule
         if: always() && steps.open-firewall.outcome == 'success'
         shell: pwsh

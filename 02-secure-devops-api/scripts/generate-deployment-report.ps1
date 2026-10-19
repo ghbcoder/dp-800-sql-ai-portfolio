@@ -1,6 +1,6 @@
 param(
-    [string]$DacpacPath = ".\01-db-design\SupportKnowledgePlatform\bin\Debug\SupportKnowledgePlatform.dacpac",
-    [string]$OutputPath = ".\01-db-design\SupportKnowledgePlatform\bin\Debug\deployment-report.xml"
+    [string]$ReportPath,
+    [string]$DacpacPath = ".\01-db-design\SupportKnowledgePlatform\bin\Debug\SupportKnowledgePlatform.dacpac"
 )
 
 $ErrorActionPreference = "Stop"
@@ -15,6 +15,12 @@ if (-not $env:AZURE_SQL_DATABASE) {
 
 if (-not (Test-Path $DacpacPath)) {
     throw "DACPAC not found: $DacpacPath"
+}
+
+if (-not $ReportPath) {
+    $ReportPath = Join-Path `
+        $RepoRoot `
+        "01-db-design\SupportKnowledgePlatform\bin\Debug\deployment-report.xml"
 }
 
 Write-Host "Acquiring Azure SQL access token..."
@@ -35,7 +41,7 @@ sqlpackage `
     /SourceFile:$DacpacPath `
     /TargetConnectionString:"Server=tcp:$env:AZURE_SQL_SERVER,1433;Database=$env:AZURE_SQL_DATABASE;Encrypt=True;TrustServerCertificate=False;" `
     /AccessToken:$accessToken `
-    /OutputPath:$OutputPath `
+    /OutputPath:$ReportPath `
     /p:ScriptDatabaseOptions=False
 
 if ($LASTEXITCODE -ne 0) {
@@ -43,4 +49,4 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host "Deployment report created:"
-Write-Host $OutputPath
+Write-Host $ReportPath
