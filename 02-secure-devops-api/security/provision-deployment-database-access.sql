@@ -53,3 +53,8 @@ BEGIN
     EXEC sys.sp_executesql @Sql;
 END;
 GO
+
+GRANT ALTER
+    ON OBJECT::[dbo].[KnowledgeArticles]
+    TO [DatabaseDeploymentValidator];
+GO

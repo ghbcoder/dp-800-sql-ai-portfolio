@@ -7,6 +7,7 @@ CREATE TABLE [dbo].[KnowledgeArticles]
     [CreatedAt] DATETIME2 NOT NULL
         CONSTRAINT [DF_KnowledgeArticles_CreatedAt]
         DEFAULT SYSUTCDATETIME(),
+    [LastReviewedAt] DATETIME2 (0) NULL,
 
     CONSTRAINT [PK_KnowledgeArticles]
         PRIMARY KEY ([ArticleID])

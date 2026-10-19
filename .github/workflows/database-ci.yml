@@ -74,8 +74,11 @@ jobs:
           Write-Host "Azure SQL access token acquired successfully."
 
       - name: Open temporary SQL firewall rule
+        id: open-firewall
         shell: pwsh
-        run: ./02-secure-devops-api/scripts/network/open-ci-sql-firewall.ps1
+        run: |
+          ./02-secure-devops-api/scripts/network/open-ci-sql-firewall.ps1 `
+            -RuleName "Allow-GitHub-CI-${{ github.run_id }}-${{ github.run_attempt }}"
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -103,7 +106,16 @@ jobs:
         shell: pwsh
         run: ./02-secure-devops-api/scripts/check-deployment-report.ps1
 
-      - name: Close temporary SQL firewall rule
-        if: always()
+      - name: Publish database
         shell: pwsh
-        run: ./02-secure-devops-api/scripts/network/close-ci-sql-firewall.ps1
+        env:
+          AZURE_SQL_SERVER: ${{ vars.AZURE_SQL_SERVER }}
+          AZURE_SQL_DATABASE: ${{ vars.AZURE_SQL_DATABASE }}
+        run: ./02-secure-devops-api/scripts/publish-database.ps1
+
+      - name: Close temporary SQL firewall rule
+        if: always() && steps.open-firewall.outcome == 'success'
+        shell: pwsh
+        run: |
+          ./02-secure-devops-api/scripts/network/close-ci-sql-firewall.ps1 `
+            -RuleName "Allow-GitHub-CI-${{ github.run_id }}-${{ github.run_attempt }}"
