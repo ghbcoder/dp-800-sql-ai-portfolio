@@ -46,8 +46,9 @@ sqlpackage `
     /SourceFile:$DacpacPath `
     /TargetServerName:$Server `
     /TargetDatabaseName:$Database `
-    /AccessToken:$AccessToken
-
+    /AccessToken:$AccessToken `
+    /p:ScriptDatabaseOptions=False
+    
 if ($LASTEXITCODE -ne 0) {
     throw "SqlPackage publish failed with exit code $LASTEXITCODE."
 }

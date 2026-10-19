@@ -35,7 +35,8 @@ sqlpackage `
     /SourceFile:$DacpacPath `
     /TargetConnectionString:"Server=tcp:$env:AZURE_SQL_SERVER,1433;Database=$env:AZURE_SQL_DATABASE;Encrypt=True;TrustServerCertificate=False;" `
     /AccessToken:$accessToken `
-    /OutputPath:$OutputPath
+    /OutputPath:$OutputPath `
+    /p:ScriptDatabaseOptions=False
 
 if ($LASTEXITCODE -ne 0) {
     throw "SqlPackage deployment report failed with exit code $LASTEXITCODE."
